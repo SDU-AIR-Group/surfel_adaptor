@@ -1,0 +1,1 @@
+python train.py --config surfel_adaptor/configs/train/slat_vae_enc_dec_gs_swin8_B_64l8_fp16.json --output_dir surfel_adaptor/outputs/slat_vae_dec_mesh_swin8_B_64l8_fp16_1node --data_dir /media/wyc/Chuan_Disk/terrain_data/datatset/
