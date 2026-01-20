@@ -84,7 +84,7 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         self.renderer = GaussianRenderer(rendering_options)
         self.renderer.pipe.kernel_size = self.models['decoder'].rep_config['2d_filter_kernel_size']
         
-    def _render_batch(self, reps: List[Gaussian], extrinsics: torch.Tensor, intrinsics: torch.Tensor) -> torch.Tensor:
+    def _render_batch(self, reps: List[Gaussian], extrinsics: torch.Tensor, intrinsics: torch.Tensor, ground_image=None) -> torch.Tensor:
         """
         Render a batch of representations.
 
@@ -95,7 +95,10 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         """
         ret = None
         for i, representation in enumerate(reps):
-            render_pack = self.renderer.render(representation, extrinsics[i], intrinsics[i])
+            if ground_image is not None:
+                render_pack = self.renderer.render(representation, extrinsics[i], intrinsics[i], ground_image[i])
+            else:
+                render_pack = self.renderer.render(representation, extrinsics[i], intrinsics[i])
             if ret is None:
                 ret = {k: [] for k in list(render_pack.keys())} # + ['bg_color']}
             for k, v in render_pack.items():
@@ -174,18 +177,22 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         """
         z, mean, logvar = self.training_models['encoder'](feats, sample_posterior=True, return_raw=True)
         reps = self.training_models['decoder'](z)
+        gt_image = image
+        
         # 渲染高斯表示为图片
         self.renderer.rendering_options.resolution = image.shape[-1]
-        render_results = self._render_batch(reps, extrinsics, intrinsics)     
-        
-        terms = edict(loss = 0.0, rec = 0.0)
-        
+        render_results = self._render_batch(reps, extrinsics, intrinsics, gt_image)     
         rec_image = render_results['render']
-        gt_image = image
         # plt.imshow(gt_image[0].permute(1,2,0).cpu().detach().numpy())
         # plt.show()
         # plt.imshow(rec_image[0].permute(1,2,0).cpu().detach().numpy())
         # plt.show()
+        # normal_img = (render_results['ground_normal'][0].permute(1,2,0).detach().cpu() + 1) * 127.5
+        # normal_img = normal_img.clip(0, 255).numpy().astype(np.uint8)
+        # plt.imshow(normal_img)
+        # plt.show()
+        
+        terms = edict(loss = 0.0, rec = 0.0)
                 
         if self.loss_type == 'l1':
             terms["l1"] = l1_loss(rec_image, gt_image)
@@ -205,7 +212,9 @@ class SLatVaeGaussianTrainer(BasicTrainer):
 
         # Model loss
         normal_error = (1 - (render_results['render_normal'] * render_results['surf_normal']).sum(dim=0))[None]
-        terms["normal"] = (normal_error).mean()
+        gt_normal_err = (1 - (render_results['render_normal'] * render_results['ground_normal']).sum(dim=0))[None]
+        lambda_render_normal = 0.8
+        terms["normal"] = lambda_render_normal*(normal_error).mean() + (1-lambda_render_normal)*(gt_normal_err).mean()
         terms["dist"] = (render_results['render_dist']).mean()
         terms["loss"] = terms["loss"] + self.lambda_normal * terms["normal"] + self.lambda_dist * terms["dist"]
 
