@@ -33,7 +33,7 @@
                         "_features_dc": 1.0,
                         "_opacity": 1.0,
                         "_scaling": 1.0,
-                        "_rotation": 0.2
+                        "_rotation": 0.1
                     },
                     "perturb_offset": true,
                     "voxel_size": 2.0,
@@ -53,21 +53,19 @@
         "args": {
             "image_size": 512,
             "model": "sonata",
-            "resolution": 128,
-            "training_mode": "local",
-            "local_views_num": 100
+            "resolution": 128
         }
     },
     "trainer": {
         "name": "SLatVaeGaussianTrainer",
         "args": {
             "max_steps": 1000000,
-            "batch_size_per_gpu": 8,
+            "batch_size_per_gpu": 4,
             "batch_split": 2,
             "optimizer": {
                 "name": "AdamW",
                 "args": {
-                    "lr": 1e-6,
+                    "lr": 1e-5,
                     "weight_decay": 0.0
                 }
             },
@@ -100,7 +98,6 @@
             "lambda_normal": 5e-3,
             "lambda_dist": 0.0,
             "lambda_kl": 1e-06,
-            "lambda_gmm": 0.0,
             "regularizations": {
                 "lambda_vol": 1e3,
                 "lambda_opacity": 0.001

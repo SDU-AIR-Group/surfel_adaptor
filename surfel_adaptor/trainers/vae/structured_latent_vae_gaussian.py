@@ -10,7 +10,7 @@ from ..basic import BasicTrainer
 from ...gaussian import Gaussian, GaussianRenderer
 # from ...renderers import GaussianRenderer
 from ...modules.sparse import SparseTensor
-from ...utils.loss_utils import l1_loss, l2_loss, ssim, lpips, huber_log_loss
+from ...utils.loss_utils import l1_loss, l2_loss, ssim, lpips, huber_log_loss, xyz_loss, normal_loss, scale_loss, knn_search
 import matplotlib.pyplot as plt
 
 
@@ -62,6 +62,7 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         lambda_normal: float = 0.05,
         lambda_dist: float = 0.01,
         lambda_kl: float = 1e-6,
+        lambda_gmm: float = 0.0, # 1e-4,
         regularizations: Dict = {},
         **kwargs
     ):
@@ -72,6 +73,7 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         self.lambda_normal = lambda_normal
         self.lambda_dist = lambda_dist
         self.lambda_kl = lambda_kl
+        self.lambda_gmm = lambda_gmm
         self.regularizations = regularizations
         self.zoom_factor = self.models['decoder'].rep_config['model_scale']
 
@@ -151,6 +153,45 @@ class SLatVaeGaussianTrainer(BasicTrainer):
             # gauss越不透明，loss越小
             loss = loss + self.regularizations['lambda_opacity'] * terms[f'reg_opacity']
         return loss, terms
+
+    def _get_gmm_loss(self, reps: List[Gaussian]) -> Tuple[torch.Tensor, Dict]:
+        loss = 0.0
+        terms = {}
+        lambda_dis = 0.0
+        lambda_norm = 0.8
+        if self.lambda_gmm != 0:
+            xyz = torch.cat([g.get_xyz for g in reps], dim=0)
+            normal = torch.cat([g.get_normal for g in reps], dim=0)
+            scales = torch.cat([g.get_scaling for g in reps], dim=0)
+            trans = torch.cat([g.get_covariance() for g in reps], dim=0)
+            knn_mask, _ = knn_search(xyz, 10)
+            knn_pc = xyz[knn_mask]
+            knn_n = normal[knn_mask]
+            knn_s = scales[knn_mask]
+            knn_trans = trans[knn_mask]
+            pc_usq = torch.unsqueeze(xyz, 1)  # src_usq: (N x 1 x 3) knn: (N x k x 3)
+            p_mu = pc_usq - knn_pc
+            # RBF weight: (N x K)
+            RBF_weights = torch.exp(-1 * torch.einsum('nki,nki->nk', p_mu, p_mu)/2.0) # 2 is assumed standard covariance of surfel
+
+            # Position loss
+            pos_loss = xyz_loss(xyz, knn_pc, knn_n, RBF_weights)
+            # print(f"pos_loss = {pos_loss}")
+            # Normal loss
+            norm_loss = normal_loss(normal, knn_n, RBF_weights)
+            # print(f"normal_loss = {norm_loss}")
+            # Scale loss
+            # covs: (N x 4 x 4), knn_vs: = [:, :, 0:3, 0:2] (N x k x 2 x 3), vs: [:, 0:3, 0:2] (N x 2 x 3)
+            knn_vs = knn_trans[:, :, 0:3, 0:2].transpose(2, 3)
+            src_vs = trans[:, 0:3, 0:2].transpose(1, 2)
+            knn_vs = knn_pc.unsqueeze(2) + knn_s.unsqueeze(-1) * knn_vs
+            src_vs = xyz.unsqueeze(1) + scales.unsqueeze(-1) * src_vs
+            s_loss = scale_loss(scales, knn_s, src_vs, knn_vs, knn_n, RBF_weights)
+            terms[f'reg_gmm'] = lambda_dis * pos_loss + lambda_norm * norm_loss + (1-lambda_dis-lambda_norm) * s_loss
+
+            loss = loss + terms[f'reg_gmm']
+        
+        return loss, terms
     
     def training_losses(
         self,
@@ -220,7 +261,12 @@ class SLatVaeGaussianTrainer(BasicTrainer):
 
         terms["kl"] = 0.5 * torch.mean(mean.pow(2) + logvar.exp() - logvar - 1)
         terms["loss"] = terms["loss"] + self.lambda_kl * terms["kl"]
-        
+
+        # GMM loss
+        gmm_loss, gmm_terms = self._get_gmm_loss(reps)
+        terms.update(gmm_terms)
+        terms["loss"] = terms["loss"] + self.lambda_gmm * gmm_loss
+
         reg_loss, reg_terms = self._get_regularization_loss(reps)
         terms.update(reg_terms)
         terms["loss"] = terms["loss"] + reg_loss

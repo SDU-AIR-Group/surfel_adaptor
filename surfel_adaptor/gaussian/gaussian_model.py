@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from plyfile import PlyData, PlyElement
-from .general_utils import inverse_sigmoid, strip_symmetric, build_scaling_rotation
+from .general_utils import inverse_sigmoid, strip_symmetric, build_scaling_rotation, rotation_to_normal
 import utils3d
 
 
@@ -43,12 +43,18 @@ class Gaussian:
         self._opacity = None
 
     def setup_functions(self):
-        def build_covariance_from_scaling_rotation(scaling, scaling_modifier, rotation):
+        def build_covariance_from_scaling_rotation(center, scaling, scaling_modifier, rotation):
             L = build_scaling_rotation(scaling_modifier * scaling, rotation)
-            actual_covariance = L @ L.transpose(1, 2)
-            symm = strip_symmetric(actual_covariance)
-            return symm
-        
+            trans = torch.zeros((center.shape[0], 4, 4), dtype=torch.float, device="cuda")
+            trans[:, :3, :3] = L
+            trans[:, 3, :3] = center
+            trans[:, 3, 3] = 1
+            return trans
+            # actual_covariance = L @ L.transpose(1, 2)
+            # symm = strip_symmetric(actual_covariance)
+            # return symm
+
+  
         if self.scaling_activation_type == "exp":
             self.scaling_activation = torch.exp
             self.inverse_scaling_activation = torch.log
@@ -78,7 +84,11 @@ class Gaussian:
     @property
     def get_rotation(self):
         return self.rotation_activation(self._rotation + self.rots_bias[None, :])
-    
+
+    @property
+    def get_normal(self):
+        return rotation_to_normal(self.rotation_activation(self._rotation + self.rots_bias[None, :]))
+
     @property
     def get_xyz(self):
         # return self._xyz * self.aabb[None, 3:] + self.aabb[None, :3]
@@ -96,7 +106,7 @@ class Gaussian:
         return self.opacity_activation(opacity)
 
     def get_covariance(self, scaling_modifier = 1):
-        return self.covariance_activation(self.get_scaling, scaling_modifier, self._rotation + self.rots_bias[None, :])
+        return self.covariance_activation(self.get_xyz, self.get_scaling, scaling_modifier, self._rotation + self.rots_bias[None, :])
     
     def from_scaling(self, scales):
         scales = torch.sqrt(torch.square(scales) - self.mininum_kernel_size ** 2)

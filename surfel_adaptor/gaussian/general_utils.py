@@ -104,10 +104,24 @@ def build_scaling_rotation(s, r):
 
     L[:,0,0] = s[:,0]
     L[:,1,1] = s[:,1]
-    L[:,2,2] = s[:,2]
+    # L[:,2,2] = s[:,2] # 2D gauss is 0 for z-scale
 
     L = R @ L
     return L
+
+from kornia.geometry import conversions
+#! normal to quaternion
+def normal_to_rotation(normals):
+    rotations = create_rotation_matrix_from_direction_vector_batch(normals)
+    rotations = conversions.rotation_matrix_to_quaternion(rotations,eps=1e-5)
+    return rotations
+
+#!  quaternion to normal
+def rotation_to_normal(rotations):
+    rotation_matrices = conversions.quaternion_to_rotation_matrix(rotations)
+    normals = rotation_matrices[..., 2]
+    normals = torch.nn.functional.normalize(normals, dim=-1, eps=1e-6)
+    return normals
 
 def safe_state(silent):
     old_f = sys.stdout

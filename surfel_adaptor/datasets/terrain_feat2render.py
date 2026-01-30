@@ -29,12 +29,16 @@ class TerrainFeat2Render(StandardDatasetBase):
         image_size: int,
         model: str = 'sonata',
         resolution: int = 128,
+        training_mode = 'mixed',
+        local_views_num = 100,
         min_aesthetic_score: float = 5.0,
         max_num_voxels: int = 32768,
     ):
         self.image_size = image_size
         self.model = model
         self.resolution = resolution
+        self.training_mode = training_mode,
+        self.local_views_num = local_views_num,
         self.min_aesthetic_score = min_aesthetic_score
         self.max_num_voxels = max_num_voxels
         self.value_range = (0, 1)
@@ -55,7 +59,10 @@ class TerrainFeat2Render(StandardDatasetBase):
         with open(os.path.join(root, 'renders', instance['render'], 'transforms.json')) as f:
             metadata = json.load(f)
         n_views = len(metadata['frames'])
-        view = np.random.randint(n_views)
+        if self.training_mode == 'local':
+            view = np.random.randint(self.local_views_num)
+        else:
+            view = np.random.randint(n_views)
         metadata = metadata['frames'][view]
         fov = metadata['camera_angle_x']
         intrinsics = utils3d.torch.intrinsics_from_fov_xy(torch.tensor(fov), torch.tensor(fov))
