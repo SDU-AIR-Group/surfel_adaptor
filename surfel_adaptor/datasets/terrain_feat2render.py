@@ -29,20 +29,19 @@ class TerrainFeat2Render(StandardDatasetBase):
         image_size: int,
         model: str = 'sonata',
         resolution: int = 128,
-        training_mode = 'mixed',
-        local_views_num = 100,
+        training_mode: str = 'mixed',
+        local_views_num: int = 100,
         min_aesthetic_score: float = 5.0,
         max_num_voxels: int = 32768,
     ):
         self.image_size = image_size
         self.model = model
         self.resolution = resolution
-        self.training_mode = training_mode,
-        self.local_views_num = local_views_num,
+        self.training_mode = training_mode
+        self.local_views_num = local_views_num
         self.min_aesthetic_score = min_aesthetic_score
         self.max_num_voxels = max_num_voxels
         self.value_range = (0, 1)
-        
         super().__init__(roots)
         
     def filter_metadata(self, metadata):
@@ -60,6 +59,7 @@ class TerrainFeat2Render(StandardDatasetBase):
             metadata = json.load(f)
         n_views = len(metadata['frames'])
         if self.training_mode == 'local':
+            assert self.local_views_num <= n_views
             view = np.random.randint(self.local_views_num)
         else:
             view = np.random.randint(n_views)

@@ -33,7 +33,7 @@
                         "_features_dc": 1.0,
                         "_opacity": 1.0,
                         "_scaling": 1.0,
-                        "_rotation": 0.2
+                        "_rotation": 0.1
                     },
                     "perturb_offset": true,
                     "voxel_size": 2.0,
@@ -62,7 +62,7 @@
         "name": "SLatVaeGaussianTrainer",
         "args": {
             "max_steps": 1000000,
-            "batch_size_per_gpu": 8,
+            "batch_size_per_gpu": 4,
             "batch_split": 2,
             "optimizer": {
                 "name": "AdamW",
@@ -75,7 +75,7 @@
                 0.9999
             ],
             "fp16_mode": "inflat_all",
-            "fp16_scale_growth": 1e-4,
+            "fp16_scale_growth": 1e-3,
             "elastic": {
                 "name": "LinearMemoryController",
                 "args": {
