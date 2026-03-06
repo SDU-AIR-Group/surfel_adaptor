@@ -4,3 +4,4 @@ from . import datasets
 from . import gaussian
 from . import utils
 from . import trainers
+from . import dataset_toolkits
