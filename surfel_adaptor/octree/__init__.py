@@ -1,11 +1,10 @@
 import importlib
 
 __attributes = {
-    
-    'TerrainFeat2Render': 'terrain_feat2render',
-    'SparseStructureLatent': 'sparse_structure_latent',
-    'StructureDenser': 'structure_denser'
-
+    'OctreeRenderer': 'octree_renderer',
+    'GaussianRenderer': 'gaussian_render',
+    'MeshRenderer': 'mesh_renderer',
+    'DfsOctree': 'octree_dfs',
 }
 
 __submodules = []
@@ -28,12 +27,5 @@ def __getattr__(name):
 
 # For Pylance
 if __name__ == '__main__':
-    
-    from .terrain_feat2render import TerrainFeat2Render
-    from .terrain_sparse2dense import StructureDenser
-    
-    from .sparse_structure_latent import (
-        SparseStructureLatent,
-        TextConditionedSparseStructureLatent,
-        ImageConditionedSparseStructureLatent,
-    )    
+    from .octree_renderer import OctreeRenderer
+    from .octree_dfs import DfsOctree

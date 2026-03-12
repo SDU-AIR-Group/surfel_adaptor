@@ -3,7 +3,7 @@ import importlib
 __attributes = {
     'BasicTrainer': 'basic',
     
-    'SparseStructureVaeTrainer': 'vae.sparse_structure_vae',
+    'StructureDenserVaeTrainer': 'vae.structure_denser_vae',
     
     'SLatVaeGaussianTrainer': 'vae.structured_latent_vae_gaussian',
     
@@ -41,6 +41,7 @@ if __name__ == '__main__':
     from .basic import BasicTrainer
 
     from .vae.structured_latent_vae_gaussian import SLatVaeGaussianTrainer
+    from .vae.structure_denser_vae import StructureDenserVaeTrainer
     
     from .flow_matching.flow_matching import (
         FlowMatchingTrainer,

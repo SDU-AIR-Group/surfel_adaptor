@@ -5,6 +5,9 @@ __attributes = {
     'SLatGaussianDecoder': 'latent_vae',
     'ElasticSLatEncoder': 'latent_vae',
     'ElasticSLatGaussianDecoder': 'latent_vae',
+    'StructureDenser': 'structure_denser',
+    'LatentFlowModel': 'latent_flow',
+    'ElasticLatentFlowModel': 'latent_flow',
     }
 
 __submodules = []
@@ -68,7 +71,8 @@ if __name__ == '__main__':
         ElasticSLatGaussianDecoder,
     )
     
-    # from .structured_latent_flow import (
-    #     SLatFlowModel,
-    #     ElasticSLatFlowModel,
-    # )
+    from .terrain_latent_flow import (
+        StructureDenser,
+        LatentFlowModel,
+        ElasticLatentFlowModel,
+    )
