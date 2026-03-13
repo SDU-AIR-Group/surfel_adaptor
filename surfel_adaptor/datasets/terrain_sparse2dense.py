@@ -60,16 +60,12 @@ class StructureDenser(StandardDatasetBase):
         if isinstance(sample, torch.Tensor):
             sample = {'ss': sample}
 
-        max_vis_resolution = 64
-        max_vis_voxels = 200000
-        render_resolution = 256
-
         renderer = OctreeRenderer()
-        renderer.rendering_options.resolution = render_resolution
+        renderer.rendering_options.resolution = 512
         renderer.rendering_options.near = 0.8
         renderer.rendering_options.far = 1.6
         renderer.rendering_options.bg_color = (0, 0, 0)
-        renderer.rendering_options.ssaa = 1
+        renderer.rendering_options.ssaa = 4
         renderer.pipe.primitive = 'voxel'
         
         # Build camera
@@ -91,22 +87,13 @@ class StructureDenser(StandardDatasetBase):
             intrinsics = utils3d.torch.intrinsics_from_fov_xy(fov, fov)
             exts.append(extrinsics)
             ints.append(intrinsics)
-        def _render_voxel_tensor(render_resolution, voxel_tensor: torch.Tensor) -> torch.Tensor:
-            # Visualization-only guardrails for high resolutions (e.g. 128^3).
-            # Keep training data unchanged, but lower rendering memory footprint.
-            vis_resolution = self.resolution
-            if vis_resolution > max_vis_resolution:
-                factor = int(np.ceil(vis_resolution / max_vis_resolution))
-                voxel_tensor = F.max_pool3d(voxel_tensor.float(), kernel_size=factor, stride=factor)
-                voxel_tensor = (voxel_tensor > 0).long()
-                vis_resolution = voxel_tensor.shape[-1]
-            print('FUCK123123123123')
+
+        def _render_voxel_tensor(voxel_tensor: torch.Tensor) -> torch.Tensor:
             images = []
             voxel_tensor = voxel_tensor.cuda()
-            print(voxel_tensor.shape)
             for i in range(voxel_tensor.shape[0]):
                 representation = Octree(
-                    depth=5,
+                    depth=10,
                     aabb=[-0.5, -0.5, -0.5, 1, 1, 1],
                     device='cuda',
                     primitive='voxel',
@@ -114,26 +101,22 @@ class StructureDenser(StandardDatasetBase):
                     primitive_config={'solid': True},
                 )
                 coords = torch.nonzero(voxel_tensor[i, 0], as_tuple=False)
-                if coords.shape[0] > max_vis_voxels:
-                    idx = torch.randperm(coords.shape[0], device=coords.device)[:max_vis_voxels]
-                    coords = coords[idx]
-                representation.position = coords.float() / vis_resolution
-                representation.depth = torch.full((representation.position.shape[0], 1), int(np.ceil(np.log2(vis_resolution))), dtype=torch.uint8, device='cuda')
+                representation.position = coords.float() / self.resolution
+                representation.depth = torch.full((representation.position.shape[0], 1), int(np.log2(self.resolution)), dtype=torch.uint8, device='cuda')
 
-                view_res = render_resolution
-                image = torch.zeros(3, view_res * 2, view_res * 2).cuda()
+                image = torch.zeros(3, 1024, 1024).cuda()
                 tile = [2, 2]
                 for j, (ext, intr) in enumerate(zip(exts, ints)):
                     res = renderer.render(representation, ext, intr, colors_overwrite=representation.position)
-                    image[:, view_res * (j // tile[1]):view_res * (j // tile[1] + 1), view_res * (j % tile[1]):view_res * (j % tile[1] + 1)] = res['color']
+                    image[:, 512 * (j // tile[1]):512 * (j // tile[1] + 1), 512 * (j % tile[1]):512 * (j % tile[1] + 1)] = res['color']
                 images.append(image)
             return torch.stack(images)
 
         vis_dict = {}
         if 'ss' in sample and sample['ss'] is not None:
-            vis_dict['ss'] = _render_voxel_tensor(render_resolution, sample['ss'])
+            vis_dict['ss'] = _render_voxel_tensor(sample['ss'])
         if 'ds' in sample and sample['ds'] is not None:
-            vis_dict['ds'] = _render_voxel_tensor(render_resolution, sample['ds'])
+            vis_dict['ds'] = _render_voxel_tensor(sample['ds'])
 
         return vis_dict
        

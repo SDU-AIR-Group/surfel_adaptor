@@ -189,7 +189,7 @@ class Trainer:
             return sample
 
     @torch.no_grad()
-    def snapshot_dataset(self, num_samples=4):
+    def snapshot_dataset(self, num_samples=100):
         """
         Sample images from the dataset.
         """
@@ -353,11 +353,10 @@ class Trainer:
         if self.is_master:
             print('\nStarting training...')
             self.snapshot_dataset()
-            print('FUCK!!!!!!!')
         if self.step == 0:
-            print("Init began!!!!!")
+            print("Init began...")
             self.snapshot(suffix='init')
-            print("Init finished!!!!!")
+            print("Init finished...")
         else: # resume
             self.snapshot(suffix=f'resume_step{self.step:07d}')
 

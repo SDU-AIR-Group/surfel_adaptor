@@ -71,9 +71,7 @@ class StructureDenserVaeTrainer(BasicTrainer):
             a dict with the key "loss" containing a scalar tensor.
             may also contain other keys for different terms.
         """
-        print('1111111111111')
         pts, mean, logvar = self.training_models['denser'](ss.float(), sample_posterior=True, return_raw=True)
-        print('2222222222222')
         # logits = self.training_models['decoder'](z)
 
         terms = edict(loss = 0.0)
