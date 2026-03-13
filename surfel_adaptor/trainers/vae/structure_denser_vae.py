@@ -71,7 +71,9 @@ class StructureDenserVaeTrainer(BasicTrainer):
             a dict with the key "loss" containing a scalar tensor.
             may also contain other keys for different terms.
         """
+        print('1111111111111')
         pts, mean, logvar = self.training_models['denser'](ss.float(), sample_posterior=True, return_raw=True)
+        print('2222222222222')
         # logits = self.training_models['decoder'](z)
 
         terms = edict(loss = 0.0)
@@ -118,10 +120,9 @@ class StructureDenserVaeTrainer(BasicTrainer):
             batch = min(batch_size, num_samples - i)
             data = next(iter(dataloader))
             args = {k: v[:batch].cuda() if isinstance(v, torch.Tensor) else v[:batch] for k, v in data.items()}
-            z = self.models['encoder'](args['ss'].float(), sample_posterior=False)
-            logits = self.models['decoder'](z)
-            recon = (logits > 0).long()
-            gts.append(args['ss'])
+            pts = self.training_models['denser'](args['ss'].float(), sample_posterior=True, return_raw=False)
+            recon = (pts > 0).long()
+            gts.append(args['ds'])
             recons.append(recon)
 
         sample_dict = {

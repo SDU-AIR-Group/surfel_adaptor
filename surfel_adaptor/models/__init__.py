@@ -5,9 +5,9 @@ __attributes = {
     'SLatGaussianDecoder': 'latent_vae',
     'ElasticSLatEncoder': 'latent_vae',
     'ElasticSLatGaussianDecoder': 'latent_vae',
-    'StructureDenser': 'structure_denser',
-    'LatentFlowModel': 'latent_flow',
-    'ElasticLatentFlowModel': 'latent_flow',
+    'StructureDenser': 'terrain_latent_flow',
+    'LatentFlowModel': 'terrain_latent_flow',
+    'ElasticLatentFlowModel': 'terrain_latent_flow',
     }
 
 __submodules = []

@@ -189,7 +189,7 @@ class Trainer:
             return sample
 
     @torch.no_grad()
-    def snapshot_dataset(self, num_samples=100):
+    def snapshot_dataset(self, num_samples=4):
         """
         Sample images from the dataset.
         """
@@ -208,7 +208,7 @@ class Trainer:
         else:
             save_cfg = [('dataset', vis)]
         for name, image in save_cfg:
-            print(image.shape)
+            # print(image.shape)
             utils.save_image(
                 image,
                 os.path.join(self.output_dir, 'samples', f'{name}.jpg'),
@@ -353,6 +353,7 @@ class Trainer:
         if self.is_master:
             print('\nStarting training...')
             self.snapshot_dataset()
+            print('FUCK!!!!!!!')
         if self.step == 0:
             print("Init began!!!!!")
             self.snapshot(suffix='init')

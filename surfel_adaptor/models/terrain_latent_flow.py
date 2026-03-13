@@ -237,12 +237,12 @@ class StructureDenser(nn.Module):
         
         self.enc_blocks = nn.ModuleList([]) # Encoder blocks for VAE: [3D残差块 + 下采样]
         for i, ch in enumerate(channels):
-            self.blocks.extend([
+            self.enc_blocks.extend([
                 ResBlock3d(ch, ch)
                 for _ in range(num_res_blocks)
             ])
             if i < len(channels) - 1:
-                self.blocks.append(
+                self.enc_blocks.append(
                     DownsampleBlock3d(ch, channels[i+1])
                 )
 
@@ -261,12 +261,12 @@ class StructureDenser(nn.Module):
         
         self.dec_blocks = nn.ModuleList([]) # Encoder blocks for VAE: [3D残差块 + 下采样]
         for i, ch in enumerate(reversed(channels)):
-            self.blocks.extend([
+            self.dec_blocks.extend([
                 ResBlock3d(ch, ch)
                 for _ in range(num_res_blocks)
             ])
             if i < len(channels) - 1:
-                self.blocks.append(
+                self.dec_blocks.append(
                     UpsampleBlock3d(ch, channels[-i-2])
                 )
 
@@ -292,7 +292,8 @@ class StructureDenser(nn.Module):
         """
         self.use_fp16 = True
         self.dtype = torch.float16
-        self.blocks.apply(convert_module_to_f16)
+        self.enc_blocks.apply(convert_module_to_f16)
+        self.dec_blocks.apply(convert_module_to_f16)
         self.middle_block.apply(convert_module_to_f16)
 
     def convert_to_fp32(self) -> None:
@@ -301,7 +302,8 @@ class StructureDenser(nn.Module):
         """
         self.use_fp16 = False
         self.dtype = torch.float32
-        self.blocks.apply(convert_module_to_f32)
+        self.enc_blocks.apply(convert_module_to_f32)
+        self.dec_blocks.apply(convert_module_to_f32)
         self.middle_block.apply(convert_module_to_f32)
 
     def forward(self, x: torch.Tensor, sample_posterior: bool = False, return_raw: bool = False) -> torch.Tensor:
