@@ -16,7 +16,7 @@ from .mixins.classifier_free_guidance import ClassifierFreeGuidanceMixin
 from .mixins.image_conditioned import ImageConditionedMixin
 
 
-class SparseFlowMatchingTrainer(FlowMatchingTrainer):
+class StructureFlowMatchingTrainer(FlowMatchingTrainer):
     """
     Trainer for sparse diffusion model with flow matching objective.
     
@@ -76,7 +76,6 @@ class SparseFlowMatchingTrainer(FlowMatchingTrainer):
     def training_losses(
         self,
         x_0: SparseTensor,
-        ss: torch.Tensor,
         cond=None,
         **kwargs
     ) -> Tuple[Dict, Dict]:
@@ -92,7 +91,6 @@ class SparseFlowMatchingTrainer(FlowMatchingTrainer):
             a dict with the key "loss" containing a tensor of shape [N].
             may also contain other keys for different terms.
         """
-        pts = self.training_models['denser'](ss.float(), sample_posterior=True, return_raw=True)
         noise = x_0.replace(torch.randn_like(x_0.feats))
         t = self.sample_t(x_0.shape[0]).to(x_0.device).float()
         x_t = self.diffuse(x_0, t, noise=noise)
@@ -150,7 +148,7 @@ class SparseFlowMatchingTrainer(FlowMatchingTrainer):
                 self.models['denoiser'],
                 noise=noise,
                 **args,
-                steps=50, cfg_strength=3.0, verbose=verbose,
+                steps=20, cfg_strength=3.0, verbose=verbose,
             )
             sample.append(res.samples)
 
@@ -168,7 +166,7 @@ class SparseFlowMatchingTrainer(FlowMatchingTrainer):
         return sample_dict
 
 
-class SparseFlowMatchingCFGTrainer(ClassifierFreeGuidanceMixin, SparseFlowMatchingTrainer):
+class StructureFlowMatchingCFGTrainer(ClassifierFreeGuidanceMixin, StructureFlowMatchingTrainer):
     """
     Trainer for sparse diffusion model with flow matching objective and classifier-free guidance.
     
@@ -207,7 +205,7 @@ class SparseFlowMatchingCFGTrainer(ClassifierFreeGuidanceMixin, SparseFlowMatchi
     pass
 
 
-class ImageConditionedSparseFlowMatchingCFGTrainer(ImageConditionedMixin, SparseFlowMatchingCFGTrainer):
+class ImageConditionedStructureFlowMatchingCFGTrainer(ImageConditionedMixin, StructureFlowMatchingCFGTrainer):
     """
     Trainer for sparse image-conditioned diffusion model with flow matching objective and classifier-free guidance.
     

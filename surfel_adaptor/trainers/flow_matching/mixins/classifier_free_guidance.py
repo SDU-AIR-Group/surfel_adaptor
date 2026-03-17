@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from ....utils.general_utils import dict_foreach
-from ....pipelines import samplers
+from ....samplers import FlowEulerCfgSampler
 
 
 class ClassifierFreeGuidanceMixin:
@@ -52,8 +52,8 @@ class ClassifierFreeGuidanceMixin:
         assert neg_cond is not None, "neg_cond must be provided for classifier-free guidance"
         return {'cond': cond, 'neg_cond': neg_cond, **kwargs}
     
-    def get_sampler(self, **kwargs) -> samplers.FlowEulerCfgSampler:
+    def get_sampler(self, **kwargs) -> FlowEulerCfgSampler:
         """
         Get the sampler for the diffusion process.
         """
-        return samplers.FlowEulerCfgSampler(self.sigma_min)
+        return FlowEulerCfgSampler(self.sigma_min)

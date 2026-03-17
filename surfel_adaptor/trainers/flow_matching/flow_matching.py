@@ -7,7 +7,7 @@ import numpy as np
 from easydict import EasyDict as edict
 
 from ..basic import BasicTrainer
-from ...pipelines import samplers 
+from ...samplers import FlowEulerSampler
 from ...utils.general_utils import dict_reduce
 from .mixins.classifier_free_guidance import ClassifierFreeGuidanceMixin
 from .mixins.text_conditioned import TextConditionedMixin
@@ -115,11 +115,11 @@ class FlowMatchingTrainer(BasicTrainer):
         """
         return {'cond': cond, **kwargs}
 
-    def get_sampler(self, **kwargs) -> samplers.FlowEulerSampler:
+    def get_sampler(self, **kwargs) -> FlowEulerSampler:
         """
         Get the sampler for the diffusion process.
         """
-        return samplers.FlowEulerSampler(self.sigma_min)
+        return FlowEulerSampler(self.sigma_min)
     
     def vis_cond(self, **kwargs):
         """

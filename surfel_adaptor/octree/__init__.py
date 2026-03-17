@@ -28,4 +28,4 @@ def __getattr__(name):
 # For Pylance
 if __name__ == '__main__':
     from .octree_renderer import OctreeRenderer
-    from .octree_dfs import DfsOctree
+    from .octree_dfs import DfsOctree as Octree

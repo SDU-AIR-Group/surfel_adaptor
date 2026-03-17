@@ -1,0 +1,1 @@
+python dataset_toolkits/encode_terrain_latent.py --dataset_root /home/users1/wychuan/terrain_dataset  --model_root /home/users1/wychuan/terrain_dataset/outputs  --enc_model vae_dec_gs_gmm_260127  --ckpt ema0.9999_step1000000 --overwrite

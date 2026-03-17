@@ -3,8 +3,8 @@ import importlib
 __attributes = {
     
     'TerrainFeat2Render': 'terrain_feat2render',
-    'SparseStructureLatent': 'sparse_structure_latent',
-    'StructureDenser': 'terrain_sparse2dense'
+    'StructureDenser': 'terrain_sparse2dense',
+    'StructureLatent': 'sparse_structure_latent',
 
 }
 
@@ -32,8 +32,8 @@ if __name__ == '__main__':
     from .terrain_feat2render import TerrainFeat2Render
     from .terrain_sparse2dense import StructureDenser
     
-    from .sparse_structure_latent import (
-        SparseStructureLatent,
-        TextConditionedSparseStructureLatent,
-        ImageConditionedSparseStructureLatent,
+    from .terrain_dense2latent import (
+        StructureLatent,
+        TextConditionedSLat,
+        ImageConditionedSLat,
     )    

@@ -4,8 +4,10 @@ from tqdm import tqdm
 import utils3d
 from PIL import Image
 
-from ..renderers import OctreeRenderer, GaussianRenderer, MeshRenderer
-from ..representations import Octree, Gaussian, MeshExtractResult
+from ..gaussian import Gaussian, GaussianRenderer
+from ..octree import Octree, OctreeRenderer
+# from ..renderers import OctreeRenderer, GaussianRenderer, MeshRenderer
+# from ..representations import Octree, Gaussian, MeshExtractResult
 from ..modules import sparse as sp
 from .random_utils import sphere_hammersley_sequence
 
@@ -57,13 +59,14 @@ def get_renderer(sample, **kwargs):
         renderer.rendering_options.bg_color = kwargs.get('bg_color', (0, 0, 0))
         renderer.rendering_options.ssaa = kwargs.get('ssaa', 1)
         renderer.pipe.kernel_size = kwargs.get('kernel_size', 0.1)
-        renderer.pipe.use_mip_gaussian = True
-    elif isinstance(sample, MeshExtractResult):
-        renderer = MeshRenderer()
-        renderer.rendering_options.resolution = kwargs.get('resolution', 512)
-        renderer.rendering_options.near = kwargs.get('near', 1)
-        renderer.rendering_options.far = kwargs.get('far', 100)
-        renderer.rendering_options.ssaa = kwargs.get('ssaa', 4)
+        # renderer.pipe.use_mip_gaussian = True
+
+    # elif isinstance(sample, MeshExtractResult):
+    #     renderer = MeshRenderer()
+    #     renderer.rendering_options.resolution = kwargs.get('resolution', 512)
+    #     renderer.rendering_options.near = kwargs.get('near', 1)
+    #     renderer.rendering_options.far = kwargs.get('far', 100)
+    #     renderer.rendering_options.ssaa = kwargs.get('ssaa', 4)
     else:
         raise ValueError(f'Unsupported sample type: {type(sample)}')
     return renderer
@@ -73,10 +76,16 @@ def render_frames(sample, extrinsics, intrinsics, options={}, colors_overwrite=N
     renderer = get_renderer(sample, **options)
     rets = {}
     for j, (extr, intr) in tqdm(enumerate(zip(extrinsics, intrinsics)), desc='Rendering', disable=not verbose):
-        if isinstance(sample, MeshExtractResult):
+        if isinstance(sample, Gaussian):
             res = renderer.render(sample, extr, intr)
-            if 'normal' not in rets: rets['normal'] = []
-            rets['normal'].append(np.clip(res['normal'].detach().cpu().numpy().transpose(1, 2, 0) * 255, 0, 255).astype(np.uint8))
+            if 'color' not in rets: rets['color'] = []
+            if 'depth' not in rets: rets['depth'] = []
+            rets['color'].append(np.clip(res['render'].detach().cpu().numpy().transpose(1, 2, 0), 0, 255).astype(np.uint8))
+            if 'depth' in res:
+                rets['depth'].append(res['depth'].detach().cpu().numpy())
+            else:
+                rets['depth'].append(None)
+        
         else:
             res = renderer.render(sample, extr, intr, colors_overwrite=colors_overwrite)
             if 'color' not in rets: rets['color'] = []

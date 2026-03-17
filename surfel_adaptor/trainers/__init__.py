@@ -16,6 +16,10 @@ __attributes = {
     'SparseFlowMatchingCFGTrainer': 'flow_matching.sparse_flow_matching',
     'TextConditionedSparseFlowMatchingCFGTrainer': 'flow_matching.sparse_flow_matching',
     'ImageConditionedSparseFlowMatchingCFGTrainer': 'flow_matching.sparse_flow_matching',
+
+    'StructureFlowMatchingTrainer': 'flow_matching.structure_flow_matching',
+    'StructureFlowMatchingCFGTrainer': 'flow_matching.structure_flow_matching',
+    'ImageConditionedStructureFlowMatchingCFGTrainer': 'flow_matching.structure_flow_matching',
 }
 
 __submodules = []
@@ -55,4 +59,10 @@ if __name__ == '__main__':
         SparseFlowMatchingCFGTrainer,
         TextConditionedSparseFlowMatchingCFGTrainer,
         ImageConditionedSparseFlowMatchingCFGTrainer,
+    )
+
+    from .flow_matching.structure_flow_matching import (
+        StructureFlowMatchingTrainer,
+        StructureFlowMatchingCFGTrainer,
+        ImageConditionedStructureFlowMatchingCFGTrainer,
     )
