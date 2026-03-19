@@ -1,0 +1,2 @@
+#!/bin/bash
+python train.py --config /home/wyc/2d_gs/2d_gaus_adaptor/surfel_adaptor/surfel_adaptor/configs/train/denser_conv3d_16l8_fp16.json --num_gpu 1 --ckpt latest --output_dir /home/wyc/2d_gs/2d_gaus_adaptor/outputs/denser_init_260312 --data_dir /media/wyc/Newsmy/sunxihe00/3_voxel

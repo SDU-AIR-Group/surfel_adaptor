@@ -86,7 +86,7 @@ class LatentVisMixin:
             tile = [2, 2]
             for j, (ext, intr) in enumerate(zip(exts, ints)):
                 res = renderer.render(representation, ext, intr)
-                image[:, 512 * (j // tile[1]):512 * (j // tile[1] + 1), 512 * (j % tile[1]):512 * (j % tile[1] + 1)] = res['color']
+                image[:, 512 * (j // tile[1]):512 * (j // tile[1] + 1), 512 * (j % tile[1]):512 * (j % tile[1] + 1)] = res['render']
             images.append(image)
         images = torch.stack(images)
             
@@ -130,24 +130,23 @@ class StructureLatent(LatentVisMixin, StandardDatasetBase):
             latent_dec_path=latent_dec_path,
             latent_dec_ckpt=latent_dec_ckpt,
         )
-        self.loads = [self.metadata.loc[instance, 'num_voxels'] for _, instance in self.instances]
-        
+        self.loads = [self.metadata.loc[instance['index'], 'num_voxels'] for _, instance in self.instances]
         if self.normalization is not None:
             self.mean = torch.tensor(self.normalization['mean']).reshape(1, -1)
             self.std = torch.tensor(self.normalization['std']).reshape(1, -1)
       
     def filter_metadata(self, metadata):
         stats = {}
-        metadata = metadata[metadata[f'full_feat_id'] != '']
+        metadata = metadata[metadata[f'latent_id'] != '']
         stats['With latent'] = len(metadata)
         # metadata = metadata[metadata['num_voxels'] <= self.max_num_voxels]
         # stats[f'Num voxels <= {self.max_num_voxels}'] = len(metadata)
         return metadata, stats
 
     def get_instance(self, root, instance):
-        feat_id = instance['feature']
-        data = np.load(os.path.join(root, 'full_features', f'{feat_id}.npz'))
-        coords = torch.tensor(data['indices']).int()
+        feat_id = instance['latent']
+        data = np.load(os.path.join(root, 'latents', f'{feat_id}.npz'))
+        coords = torch.tensor(data['coords']).int()
         feats = torch.tensor(data['feats']).float()
         if self.normalization is not None:
             feats = (feats - self.mean) / self.std

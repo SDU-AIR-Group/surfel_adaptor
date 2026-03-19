@@ -365,7 +365,6 @@ class Trainer:
         time_elapsed = 0.0
         while self.step < self.max_steps:
             time_start = time.time()
-
             data_list = self.load_data()
             step_log = self.run_step(data_list)
 

@@ -4,7 +4,7 @@ __attributes = {
     
     'TerrainFeat2Render': 'terrain_feat2render',
     'StructureDenser': 'terrain_sparse2dense',
-    'StructureLatent': 'sparse_structure_latent',
+    'StructureLatent': 'terrain_dense2latent',
 
 }
 

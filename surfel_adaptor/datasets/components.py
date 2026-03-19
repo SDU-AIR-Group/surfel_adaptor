@@ -30,12 +30,14 @@ class StandardDatasetBase(Dataset):
             key = os.path.basename(root)
             self._stats[key] = {}
             metadata = pd.read_csv(os.path.join(root, 'metadata.csv'))
+            metadata['index'] = np.arange(len(metadata))
             self._stats[key]['Total'] = len(metadata)
             metadata, stats = self.filter_metadata(metadata)
             self._stats[key].update(stats)
             for idx, r in metadata.iterrows():
-                instance = {'voxel': r['voxel_id'], 'feature': r['full_feat_id'], 'render': r['render_subdir_id']}
+                instance = {'index': r['index'],'voxel': r['voxel_id'], 'feature': r['full_feat_id'], 'render': r['render_subdir_id'], 'latent': r['latent_id']}
                 self.instances.extend([(root, instance)])
+            metadata.set_index('index', inplace=True)
             # self.instances.extend([(root, sha256) for sha256 in metadata['sha256'].values])
             # metadata.set_index('sha256', inplace=True)
             self.metadata = pd.concat([self.metadata, metadata])

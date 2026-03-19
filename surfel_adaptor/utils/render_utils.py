@@ -5,7 +5,7 @@ import utils3d
 from PIL import Image
 
 from ..gaussian import Gaussian, GaussianRenderer
-from ..octree import Octree, OctreeRenderer
+from ..octree import DfsOctree, OctreeRenderer
 # from ..renderers import OctreeRenderer, GaussianRenderer, MeshRenderer
 # from ..representations import Octree, Gaussian, MeshExtractResult
 from ..modules import sparse as sp
@@ -43,7 +43,7 @@ def yaw_pitch_r_fov_to_extrinsics_intrinsics(yaws, pitchs, rs, fovs):
 
 
 def get_renderer(sample, **kwargs):
-    if isinstance(sample, Octree):
+    if isinstance(sample, DfsOctree):
         renderer = OctreeRenderer()
         renderer.rendering_options.resolution = kwargs.get('resolution', 512)
         renderer.rendering_options.near = kwargs.get('near', 0.8)

@@ -64,7 +64,7 @@ class StructureFlowMatchingTrainer(FlowMatchingTrainer):
         self.dataloader = DataLoader(
             self.dataset,
             batch_size=self.batch_size_per_gpu,
-            num_workers=int(np.ceil(os.cpu_count() / torch.cuda.device_count())),
+            num_workers=min(32, int(np.ceil(os.cpu_count() / torch.cuda.device_count()))),
             pin_memory=True,
             drop_last=True,
             persistent_workers=True,
@@ -95,7 +95,6 @@ class StructureFlowMatchingTrainer(FlowMatchingTrainer):
         t = self.sample_t(x_0.shape[0]).to(x_0.device).float()
         x_t = self.diffuse(x_0, t, noise=noise)
         cond = self.get_cond(cond, **kwargs)
-        
         pred = self.training_models['denoiser'](x_t, t * 1000, cond, **kwargs)
         assert pred.shape == noise.shape == x_0.shape
         target = self.get_v(x_0, noise, t)
@@ -143,13 +142,17 @@ class StructureFlowMatchingTrainer(FlowMatchingTrainer):
             sample_gt.append(data['x_0'])
             cond_vis.append(self.vis_cond(**data))
             del data['x_0']
-            args = self.get_inference_cond(**data)
+            # args = self.get_inference_cond(**data)
+            # args = {**data}
             res = sampler.sample(
                 self.models['denoiser'],
                 noise=noise,
-                **args,
-                steps=20, cfg_strength=3.0, verbose=verbose,
+                **data,
+                steps=20, 
+                # cfg_strength=3.0, 
+                verbose=verbose,
             )
+
             sample.append(res.samples)
 
         sample_gt = sp.sparse_cat(sample_gt)

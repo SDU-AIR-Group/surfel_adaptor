@@ -520,7 +520,8 @@ class LatentFlowModel(nn.Module):
         if self.share_mod:
             t_emb = self.adaLN_modulation(t_emb)
         t_emb = t_emb.type(self.dtype)
-        cond = cond.type(self.dtype)
+        if cond is not None:
+            cond = cond.type(self.dtype)
 
         skips = []
         # pack with input blocks

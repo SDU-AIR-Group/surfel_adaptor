@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 import utils3d
 from .components import StandardDatasetBase
-from ..octree import Octree
+from ..octree import DfsOctree as Octree
 from ..octree import OctreeRenderer
 
 

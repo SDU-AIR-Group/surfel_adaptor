@@ -134,6 +134,9 @@ if __name__ == '__main__':
 
     generated_patch_ids = set()
     failed_patch_ids = set()
+    feature_sum = None
+    feature_sq_sum = None
+    feature_count = 0
     if len(to_process) != 0:
         encoder = load_encoder(opt)
         for patch_id, input_path, output_path in tqdm(to_process, desc='Extracting terrain latents'):
@@ -150,8 +153,18 @@ if __name__ == '__main__':
                     ).cuda()
                 latent = encoder(feats_tensor, sample_posterior=False)
                 assert torch.isfinite(latent.feats).all(), "Non-finite latent"
+                latent_feats = latent.feats.detach().cpu().float()
+                latent_feats_sum = latent_feats.sum(dim=0, dtype=torch.float64)
+                latent_feats_sq_sum = latent_feats.pow(2).sum(dim=0, dtype=torch.float64)
+                if feature_sum is None:
+                    feature_sum = latent_feats_sum
+                    feature_sq_sum = latent_feats_sq_sum
+                else:
+                    feature_sum += latent_feats_sum
+                    feature_sq_sum += latent_feats_sq_sum
+                feature_count += latent_feats.shape[0]
                 pack = {
-                    'feats': latent.feats.cpu().numpy().astype(np.float32),
+                    'feats': latent_feats.numpy().astype(np.float32),
                     'coords': latent.coords[:, 1:].cpu().numpy().astype(np.uint8),
                 }
                 np.savez_compressed(output_path, **pack)
@@ -162,6 +175,13 @@ if __name__ == '__main__':
 
     if len(failed_patch_ids) != 0:
         print(f'Failed to process: {len(failed_patch_ids)}')
+
+    if feature_count > 0:
+        feature_mean = feature_sum / feature_count
+        feature_var = torch.clamp_min(feature_sq_sum / feature_count - feature_mean.pow(2), 0.0)
+        feature_std = torch.sqrt(feature_var)
+        print(f'Global latent mean: {feature_mean.tolist()}')
+        print(f'Global latent std: {feature_std.tolist()}')
 
     success_patch_ids = existing_patch_ids | generated_patch_ids
     if 'latent_id' not in metadata.columns:
