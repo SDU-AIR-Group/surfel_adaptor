@@ -3,7 +3,7 @@ import numpy as np
 from plyfile import PlyData, PlyElement
 from .general_utils import inverse_sigmoid, strip_symmetric, build_scaling_rotation, rotation_to_normal
 import utils3d
-
+from ..utils.sh_utils import RGB2SH
 
 class Gaussian:
     def __init__(
@@ -36,11 +36,12 @@ class Gaussian:
         self.setup_functions()
 
         self._xyz = None
-        self._features_dc = None
-        self._features_rest = None
         self._scaling = None
         self._rotation = None
         self._opacity = None
+
+        self._features_dc = None
+        self._features_rest = None
 
     def setup_functions(self):
         def build_covariance_from_scaling_rotation(center, scaling, scaling_modifier, rotation):
@@ -146,6 +147,16 @@ class Gaussian:
             self.from_scaling(self.get_scaling * zoom_factor)
 
     def save_ply(self, path, transform=[[1, 0, 0], [0, 0, -1], [0, 1, 0]]):
+
+        # Set color for visualization
+        pos_color =  (torch.ones_like(self.get_xyz) * torch.tensor([1,2,3]).cuda()).float()
+        fused_color = RGB2SH(pos_color) # RGB转为球谐系数
+        features = torch.zeros((fused_color.shape[0], 3, (3 + 1) ** 2)).float().cuda()
+        features[:, :3, 0 ] = fused_color
+        features[:, 3:, 1:] = 0.0
+        self._features_dc = features[:,:,0:1]
+        self._features_rest = features[:,:,1:]
+
         xyz = self.get_xyz.detach().cpu().numpy()
         normals = np.zeros_like(xyz)
         f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()

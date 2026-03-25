@@ -1,0 +1,21 @@
+{
+    "name": "ElasticLatentFlowModel",
+    "args": {
+        "resolution": 128,
+        "in_channels": 8,
+        "out_channels": 8,
+        "model_channels": 512,
+        "cond_channels": 1024,
+        "num_blocks": 8,
+        "num_heads": 8,
+        "mlp_ratio": 4,
+        "patch_size": 2,
+        "num_io_res_blocks": 2,
+        "io_block_channels": [
+            128
+        ],
+        "pe_mode": "ape",
+        "qk_rms_norm": true,
+        "use_fp16": true
+    }
+}

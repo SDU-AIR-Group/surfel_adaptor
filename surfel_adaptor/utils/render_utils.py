@@ -3,7 +3,8 @@ import numpy as np
 from tqdm import tqdm
 import utils3d
 from PIL import Image
-
+import cv2
+import matplotlib.pyplot as plt
 from ..gaussian import Gaussian, GaussianRenderer
 from ..octree import DfsOctree, OctreeRenderer
 # from ..renderers import OctreeRenderer, GaussianRenderer, MeshRenderer
@@ -71,6 +72,31 @@ def get_renderer(sample, **kwargs):
         raise ValueError(f'Unsupported sample type: {type(sample)}')
     return renderer
 
+def _gray2RGB(gray_img, colormap=cv2.COLORMAP_TURBO):
+    gray_img = np.asarray(gray_img)
+    if gray_img.ndim == 3 and gray_img.shape[-1] == 1:
+        gray_img = gray_img[..., 0]
+    if gray_img.ndim != 2:
+        raise ValueError(f"_gray2RGB expects a 2D gray image, got shape {gray_img.shape}")
+
+    gray_img = gray_img.astype(np.float32)
+    mask = gray_img != 0
+    colored_img = np.zeros((*gray_img.shape, 3), dtype=np.uint8)
+    if not np.any(mask):
+        return colored_img
+
+    valid_gray = gray_img[mask]
+    gray_min = valid_gray.min()
+    gray_max = valid_gray.max()
+    normalized = np.zeros_like(gray_img, dtype=np.uint8)
+    if gray_max > gray_min:
+        normalized[mask] = np.clip((valid_gray - gray_min) / (gray_max - gray_min) * 255.0, 127, 255).astype(np.uint8)
+    else:
+        normalized[mask] = 255
+
+    colored_img = cv2.applyColorMap(normalized, colormap)
+    colored_img[~mask] = 0
+    return cv2.cvtColor(colored_img, cv2.COLOR_BGR2RGB)
 
 def render_frames(sample, extrinsics, intrinsics, options={}, colors_overwrite=None, verbose=True, **kwargs):
     renderer = get_renderer(sample, **options)
@@ -80,7 +106,9 @@ def render_frames(sample, extrinsics, intrinsics, options={}, colors_overwrite=N
             res = renderer.render(sample, extr, intr)
             if 'color' not in rets: rets['color'] = []
             if 'depth' not in rets: rets['depth'] = []
-            rets['color'].append(np.clip(res['render'].detach().cpu().numpy().transpose(1, 2, 0), 0, 255).astype(np.uint8))
+            gray_img = res['render'].detach().cpu().numpy().squeeze(0)
+            color_img = _gray2RGB(gray_img, colormap=kwargs.get('gray_colormap', cv2.COLORMAP_TURBO))
+            rets['color'].append(color_img)
             if 'depth' in res:
                 rets['depth'].append(res['depth'].detach().cpu().numpy())
             else:
@@ -107,6 +135,56 @@ def render_video(sample, resolution=512, bg_color=(0, 0, 0), num_frames=300, r=2
     pitch = pitch.tolist()
     extrinsics, intrinsics = yaw_pitch_r_fov_to_extrinsics_intrinsics(yaws, pitch, r, fov)
     return render_frames(sample, extrinsics, intrinsics, {'resolution': resolution, 'bg_color': bg_color}, **kwargs)
+
+
+def render_multisample_video(samples, resolution=512, bg_color=(0, 0, 0), num_frames=300, r=[2], fov=[40], **kwargs):
+    if not isinstance(samples, (list, tuple)):
+        raise TypeError(f"render_multisample_video expects a list/tuple of samples, got {type(samples)}")
+
+    rs = r
+    fovs = fov
+
+    if len(r) == 1 :
+        rs = r * len(samples)
+
+    if len(fovs) == 1 :
+        fovs = fov * len(samples)
+
+    yaws = torch.linspace(0, 2 * 3.1415, num_frames)
+    pitchs = 0.25 + 0.5 * torch.sin(torch.linspace(0, 2 * 3.1415, num_frames))
+    yaws = yaws.tolist()
+    pitchs = pitchs.tolist()
+
+    sample_renders = []
+    for sample, sample_r, sample_fov in zip(samples, rs, fovs):
+        extrinsics, intrinsics = yaw_pitch_r_fov_to_extrinsics_intrinsics(yaws, pitchs, sample_r, sample_fov)
+        sample_renders.append(
+            render_frames(sample, extrinsics, intrinsics, {'resolution': resolution, 'bg_color': bg_color}, 
+                          colors_overwrite=sample.position if isinstance(sample, DfsOctree) else None, 
+                          **kwargs)
+        )
+
+    merged = {}
+    for key in sample_renders[0].keys():
+        merged[key] = []
+        for frame_idx in range(len(sample_renders[0][key])):
+            frames = [render[key][frame_idx] for render in sample_renders]
+            if frames[0] is None:
+                merged[key].append(None)
+                continue
+
+            if frames[0].ndim == 3:
+                height, width, channels = frames[0].shape
+                image = np.zeros((height, width * len(frames), channels), dtype=frames[0].dtype)
+            else:
+                height, width = frames[0].shape
+                image = np.zeros((height, width * len(frames)), dtype=frames[0].dtype)
+
+            for i, frame in enumerate(frames):
+                image[:, width * i:width * (i + 1), ...] = frame
+            merged[key].append(image)
+
+    return merged
 
 
 def render_multiview(sample, resolution=512, nviews=30):

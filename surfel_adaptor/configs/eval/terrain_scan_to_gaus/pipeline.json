@@ -1,0 +1,51 @@
+{
+    "name": "TerrainScanToGausPipeline",
+    "args": {
+        "models": {
+            "denser": "ckpts/denser",
+            "latent_flow_model": "ckpts/denoiser",
+            "gaussian_decoder": "ckpts/gaussian_decoder"
+        },
+        "latent_sampler": {
+            "name": "FlowEulerSampler",
+            "args": {
+                "sigma_min": 0.0001
+            },
+            "params": {
+                "steps": 20,
+                "rescale_t": 1.0
+            }
+        },
+        "slat_normalization": {
+            "mean": [
+                -0.004226118788878192,
+                0.7038854278139711,
+                -0.8523671026912332,
+                0.9154423579492261,
+                -0.8408638213978546,
+                0.9756110003071319,
+                0.4446983259621712,
+                0.19115050468288472
+            ],
+            "std": [
+                0.0008604034712799788,
+                0.00038592734608419846,
+                0.00039938315398282536,
+                0.000860393033396797,
+                0.0014126360595477028,
+                0.0005721182508914694,
+                0.001666064819672024,
+                0.0006297753562062641
+            ]
+        },
+        "scan_preprocess": {
+            "max_bound": 25.0,
+            "axis_ranges": {
+                "x": [-12.5, 12.5],
+                "y": [-12.5, 12.5],
+                "z": [-12.5, 12.5]
+            }
+        },
+        "dense_threshold": 0.0
+    }
+}
