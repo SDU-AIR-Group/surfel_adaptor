@@ -1,0 +1,20 @@
+.DS_Store
+
+# python temp paths
+__pycache__/
+*.py[cod]
+
+*.blend
+*.blend1
+*.blend2
+
+.vscode/settings.json
+ 
+*.las
+*.hdf5
+*.ply
+*.csv
+*.png
+*.xml
+
+*.zip

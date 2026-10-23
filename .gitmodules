@@ -1,0 +1,3 @@
+[submodule "dataset_toolkit/extensions/sonata"]
+	path = dataset_toolkit/extensions/sonata
+	url = https://github.com/facebookresearch/sonata

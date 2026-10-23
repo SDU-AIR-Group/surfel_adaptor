@@ -1,0 +1,14 @@
+# lines starting with #/ denote the import name of the module in the next line
+# this is needed for automatic dependency checks and installation
+
+# only needed for debugging with VS Code extension 'Blender Development'
+Jinja2==3.1.5
+MarkupSafe==3.0.2
+
+# modules needed for the actual add-on
+h5py==3.12.1
+laspy==2.5.4
+open3d==0.18.0
+pascal-voc-writer==0.1.4
+pypng==0.20220715.0
+PyYAML==6.0.2
