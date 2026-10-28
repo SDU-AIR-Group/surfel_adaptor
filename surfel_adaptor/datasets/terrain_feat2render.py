@@ -70,18 +70,22 @@ class TerrainFeat2Render(StandardDatasetBase):
         c2w[:3, 1:3] *= -1
         extrinsics = torch.inverse(c2w)
         image_path = os.path.join(root, 'renders', instance['render'], metadata['file_path'])
-        image = OpenEXR.InputFile(image_path)
-        header = image.header()
-        dw = header['dataWindow']
+        data = OpenEXR.InputFile(image_path)
+        dw = data.header()['dataWindow']
         width = dw.max.x - dw.min.x + 1
         height = dw.max.y - dw.min.y + 1
-        channel_data = image.channel('V', Imath.PixelType(Imath.PixelType.FLOAT))
-        channel_array = np.frombuffer(channel_data, dtype=np.float32)
-        channel_array = channel_array.reshape((height, width))
-        image = torch.tensor(channel_array).float()
+        pixel_type = Imath.PixelType(Imath.PixelType.FLOAT)
+        depth_array = np.frombuffer(data.channel('V', pixel_type), dtype=np.float32).reshape((height, width))
+        normal_array = np.stack([
+            np.frombuffer(data.channel(f'normal.{channel}', pixel_type), dtype=np.float32).reshape((height, width))
+            for channel in 'RGB'], axis=-1)
+        data.close()
+
+        image = torch.tensor(depth_array).float()
         image[image == 1.0] = 0.0
         image *= metadata['depth']['max']
         image = image.unsqueeze(0)
+        gt_normal = torch.tensor(normal_array).permute(2, 0, 1).float()
         # image = Image.open(image_path)
         # alpha = image.getchannel(3)
         # image = image.convert('RGB')
@@ -92,6 +96,7 @@ class TerrainFeat2Render(StandardDatasetBase):
         
         return {
             'image': image,
+            'gt_normal': gt_normal,
             # 'alpha': alpha,
             'extrinsics': extrinsics,
             'intrinsics': intrinsics,
@@ -141,6 +146,7 @@ class TerrainFeat2Render(StandardDatasetBase):
         )
         
         pack['image'] = torch.stack([b['image'] for b in batch])
+        pack['gt_normal'] = torch.stack([b['gt_normal'] for b in batch])
         # pack['alpha'] = torch.stack([b['alpha'] for b in batch])
         pack['extrinsics'] = torch.stack([b['extrinsics'] for b in batch])
         pack['intrinsics'] = torch.stack([b['intrinsics'] for b in batch])

@@ -255,10 +255,10 @@ class GaussianRenderer:
             'render_dist': render_ret['rend_dist'],
             'surf_depth': render_ret['surf_depth'],
             'surf_normal': render_ret['surf_normal']
-            # 'ground_normal': ground_normal if ground_image is not None else None
+            # 'gt_surf_normal': gt_surf_normal if ground_image is not None else None
         })
         if ground_image is not None:
-            ground_normal = depth_to_normal(camera_dict, ground_image)
-            ground_normal = ground_normal.permute(2,0,1)
-            ret.ground_normal = ground_normal
+            gt_surf_normal = depth_to_normal(camera_dict, ground_image)
+            gt_surf_normal = gt_surf_normal.permute(2,0,1)
+            ret.gt_surf_normal = gt_surf_normal
         return ret

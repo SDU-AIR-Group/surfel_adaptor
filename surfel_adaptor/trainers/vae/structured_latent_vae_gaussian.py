@@ -199,6 +199,7 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         image: torch.Tensor,
         extrinsics: torch.Tensor,
         intrinsics: torch.Tensor,
+        gt_normal: torch.Tensor,
         return_aux: bool = False,
         **kwargs
     ) -> Tuple[Dict, Dict]:
@@ -207,9 +208,10 @@ class SLatVaeGaussianTrainer(BasicTrainer):
 
         Args:
             feats: The [N x * x C] sparse tensor of features.
-            image: The [N x 3 x H x W] tensor of images.
+            image: The [N x 1 x H x W] tensor of depth images.
             extrinsics: The [N x 4 x 4] tensor of extrinsics.
             intrinsics: The [N x 3 x 3] tensor of intrinsics.
+            gt_normal: The [N x 3 x H x W] tensor of world-space GT normals.
             return_aux: Whether to return auxiliary information.
 
         Returns:
@@ -228,7 +230,8 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         # plt.show()
         # plt.imshow(rec_image[0].permute(1,2,0).cpu().detach().numpy())
         # plt.show()
-        # normal_img = (render_results['ground_normal'][0].permute(1,2,0).detach().cpu() + 1) * 127.5
+        # normal_img = (render_results['gt_surf_normal'][0].permute(1,2,0).detach().cpu() + 1) * 127.5
+        # normal_img = (gt_normal[0].permute(1,2,0).detach().cpu() + 1) * 127.5
         # normal_img = normal_img.clip(0, 255).numpy().astype(np.uint8)
         # plt.imshow(normal_img)
         # plt.show()
@@ -252,10 +255,11 @@ class SLatVaeGaussianTrainer(BasicTrainer):
         terms["loss"] = terms["loss"] + terms["rec"]
 
         # Model loss
-        normal_error = (1 - (render_results['render_normal'] * render_results['surf_normal']).sum(dim=0))[None]
-        gt_normal_err = (1 - (render_results['render_normal'] * render_results['ground_normal']).sum(dim=0))[None]
+        valid = torch.isfinite(gt_normal).all(dim=1) & (torch.linalg.vector_norm(gt_normal, dim=1) > 0)
+        render_normal_err = 1 - (render_results['render_normal'] * gt_normal).sum(dim=1)[valid]
+        surf_normal_err = 1 - (render_results['surf_normal'] * render_results['gt_surf_normal']).sum(dim=1)[valid]
         lambda_render_normal = 0.8
-        terms["normal"] = lambda_render_normal*(normal_error).mean() + (1-lambda_render_normal)*(gt_normal_err).mean()
+        terms["normal"] = lambda_render_normal * render_normal_err.mean() + (1 - lambda_render_normal) * surf_normal_err.mean()
         terms["dist"] = (render_results['render_dist']).mean()
         terms["loss"] = terms["loss"] + self.lambda_normal * terms["normal"] + self.lambda_dist * terms["dist"]
 
@@ -291,7 +295,6 @@ class SLatVaeGaussianTrainer(BasicTrainer):
             num_workers=0,
             collate_fn=self.dataset.collate_fn if hasattr(self.dataset, 'collate_fn') else None,
         )
-        print(("***************************************"))
         # inference
         ret_dict = {}
         gt_images = []
